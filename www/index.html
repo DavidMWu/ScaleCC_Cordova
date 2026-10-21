@@ -13,29 +13,29 @@
     Unless required by applicable law or agreed to in writing,
     software distributed under the License is distributed on an
     "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
-     KIND, either express or implied.  See the License for the
+    KIND, either express or implied.  See the License for the
     specific language governing permissions and limitations
     under the License.
 -->
-<html>
+<html lang="en">
     <head>
         <meta charset="utf-8">
-        <meta name="viewport">
-        <meta http-equiv="Content-Security-Policy" content="default-src 'self' data: https://ssl.gstatic.com 'unsafe-eval'; style-src 'self' 'unsafe-inline'; media-src *; img-src 'self' data: content:;">
+        <meta name="viewport" content="initial-scale=1, width=device-width, viewport-fit=cover">
+        <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; media-src 'self'; img-src 'self' data: content:; connect-src 'self';">
         <meta name="format-detection" content="telephone=no">
         <meta name="msapplication-tap-highlight" content="no">
-        <meta name="viewport" content="initial-scale=1, width=device-width, viewport-fit=cover">
         <meta name="color-scheme" content="dark">
         <link rel="stylesheet" href="css/index.css">
-        <title>Scale Closed Captioning</title>
+        <title>Scale Closed Captioning - Accessible Live Subtitles</title>
     </head>
     <body>
-        <img class="logo" src="img/scaleLogo.png" alt="Scale Logo">
-        <table class="center">
-            <tbody>
-                <tr>
-                    <td>
-                        <select id="roomList" style="margin: 0 auto; display: block; font-size:24px;">
+        <header class="app-header" role="banner">
+            <div class="header-inner">
+                <div class="header-left">
+                    <img class="header-logo" src="img/scaleLogo.png" alt="SCALE Conference Logo">
+                    <div class="room-selector-wrapper">
+                        <label for="roomList" class="sr-only">Select Conference Room</label>
+                        <select id="roomList" class="room-select" aria-label="Select Conference Room">
                             <option value="">Select Room</option>
                             <option value="Ballroom A">Ballroom A</option>
                             <option value="Ballroom B">Ballroom B</option>
@@ -45,7 +45,7 @@
                             <option value="Ballroom G">Ballroom G</option>
                             <option value="Ballroom H">Ballroom H</option>
                             <option value="Room 101">Room 101</option>
-                            <option value="Room 103">Room 103</option>
+                            <option value="TEST">TEST</option>
                             <option value="Room 104">Room 104</option>
                             <option value="Room 105">Room 105</option>
                             <option value="Room 106">Room 106</option>
@@ -54,25 +54,90 @@
                             <option value="Room 211">Room 211</option>
                             <option value="Room 212">Room 212</option>
                         </select>
-                    </td>
+                    </div>
+                    <div id="statusBadge" class="status-badge status-idle" role="status" aria-live="polite">
+                        <span id="statusIcon" class="status-icon" aria-hidden="true">○</span>
+                        <span id="statusText" class="status-text">Standby</span>
+                    </div>
+                </div>
 
-                    <td>
-                        <select id="fontSizeList" style="margin: 0 auto; display: block; font-size:24px;">
-                            <option value="">Font Size</option>
-                            <option value="small">Small</option>
-                            <option value="medium">Medium</option>
-                            <option value="large">Large</option>
-                            <option value="x-large">XL</option>
-                            <option value="xx-large">XXL</option>
-                            <option value="xxx-large">XXXL</option>
-                        </select>
-                    </td>
-                </tr>
-            </tbody>
-        </table>
-        <div id="closedCaptions" class="ccText">
-            Please select a room.
-        </div>
+                <div class="header-right">
+                    <div class="font-controls" role="group" aria-label="Font Size Controls">
+                        <span class="font-controls-label" aria-hidden="true">Font Size</span>
+                        <button id="fontSizeDecBtn" type="button" class="ctrl-btn" title="Decrease font size" aria-label="Decrease font size">−</button>
+                        <button id="fontSizeIncBtn" type="button" class="ctrl-btn" title="Increase font size" aria-label="Increase font size">+</button>
+                        <button id="fontSizeResetBtn" type="button" class="ctrl-btn ctrl-btn-reset" title="Reset font size" aria-label="Reset font size">Reset</button>
+                    </div>
+                    <button id="settingsBtn" type="button" class="ctrl-btn ctrl-btn-settings" title="Display and Accessibility Settings" aria-label="Open Settings" aria-haspopup="dialog" aria-expanded="false">
+                        <span class="settings-btn-icon" aria-hidden="true">⚙</span>
+                        <span class="settings-btn-text">Settings</span>
+                    </button>
+                </div>
+            </div>
+        </header>
+
+        <main id="mainContent" class="main-container" role="main">
+            <div id="closedCaptions" class="cc-stream" role="region" aria-live="polite" aria-atomic="false" aria-label="Live Closed Captions">
+                <div class="empty-state">
+                    <p class="empty-title">Please select a conference room to start live captions.</p>
+                    <p class="empty-subtitle">Designed for accessibility and assistive listening.</p>
+                </div>
+            </div>
+        </main>
+
+        <!-- Accessibility & Vision Settings Dialog -->
+        <dialog id="settingsDialog" class="settings-modal" aria-labelledby="settingsModalTitle">
+            <div class="settings-modal-content">
+                <div class="settings-modal-header">
+                    <h2 id="settingsModalTitle" class="settings-title">Accessibility & Vision Settings</h2>
+                    <button id="closeSettingsBtn" type="button" class="ctrl-btn close-modal-btn" aria-label="Close Settings">✕</button>
+                </div>
+
+                <div class="settings-modal-body">
+                    <!-- Color Vision Profile (Includes High Contrast) -->
+                    <div class="setting-item">
+                        <div class="setting-text">
+                            <label for="colorBlindSelect" class="setting-label">Display & Vision Profile</label>
+                            <p class="setting-desc">Optimizes contrast and highlights for your specific vision profile.</p>
+                        </div>
+                        <div class="setting-control">
+                            <select id="colorBlindSelect" class="settings-select" aria-label="Display & Vision Profile">
+                                <option value="none">Standard (Default Dark Slate)</option>
+                                <option value="deuteranopia">Protanopia / Deuteranopia (Red-Green Safe)</option>
+                                <option value="tritanopia">Tritanopia (Blue-Yellow Safe)</option>
+                                <option value="monochrome">Achromatopsia (High-Contrast Grayscale)</option>
+                                <option value="high-contrast">High Contrast (Broadcast Yellow on Black)</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <!-- Debug Mode (Developer / Testing tools) -->
+                    <div class="setting-item setting-item-subtle">
+                        <div class="setting-text">
+                            <label for="debugModeToggle" class="setting-label">Debug Mode</label>
+                            <p class="setting-desc">Enables developer testing tools and the virtual TEST room.</p>
+                        </div>
+                        <div class="setting-control">
+                            <label class="switch-wrapper">
+                                <input type="checkbox" id="debugModeToggle" role="switch" aria-label="Toggle Debug Mode">
+                                <span class="switch-slider"></span>
+                            </label>
+                        </div>
+                    </div>
+
+                    <!-- Status Indicator Shape Preview -->
+                    <div class="settings-preview">
+                        <span class="preview-label">Live Status Indicator Preview:</span>
+                        <div class="status-preview-group">
+                            <span class="status-badge status-live"><span class="status-icon">●</span> Live</span>
+                            <span class="status-badge status-idle"><span class="status-icon">○</span> Listening</span>
+                            <span class="status-badge status-error"><span class="status-icon">!</span> Reconnecting</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </dialog>
+
         <script src="js/index.js"></script>
     </body>
 </html>

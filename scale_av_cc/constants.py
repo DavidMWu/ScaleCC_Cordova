@@ -1,2 +1,4 @@
-PUBLISH_ADDRESS = "tcp://0.0.0.0:4040"
-REQUEST_ADDRESS = "tcp://0.0.0.0:4050"
+import os
+
+PUBLISH_ADDRESS = os.environ.get("SCALECC_PUBLISH_ADDRESS", "tcp://127.0.0.1:4040")
+REQUEST_ADDRESS = os.environ.get("SCALECC_REQUEST_ADDRESS", "tcp://127.0.0.1:4050")

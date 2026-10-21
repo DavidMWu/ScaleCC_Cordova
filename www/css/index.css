@@ -1,70 +1,581 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one
- * or more contributor license agreements.  See the NOTICE file
- * distributed with this work for additional information
- * regarding copyright ownership.  The ASF licenses this file
- * to you under the Apache License, Version 2.0 (the
- * "License"); you may not use this file except in compliance
- * with the License.  You may obtain a copy of the License at
- *
- * http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing,
- * software distributed under the License is distributed on an
- * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
- * KIND, either express or implied.  See the License for the
- * specific language governing permissions and limitations
- * under the License.
+ * SCALE Closed Captioning - Accessible Live Subtitles
+ * Designed with WCAG AAA contrast, clear typography, and assistive listening support.
  */
+
+:root {
+    --bg-primary: #0a0e17;
+    --bg-header: rgba(15, 23, 42, 0.95);
+    --border-color: #334155;
+    --text-primary: #f8fafc;
+    --text-muted: #94a3b8;
+    --card-bg: #131c2e;
+    --card-border: #1e293b;
+    --active-border: #38bdf8;
+    --active-glow: rgba(56, 189, 248, 0.25);
+    --active-bg: #172554;
+    --btn-bg: #1e293b;
+    --btn-text: #f8fafc;
+    --btn-border: #475569;
+    --btn-hover: #334155;
+    --status-live: #22c55e;
+    --status-idle: #eab308;
+    --status-error: #ef4444;
+}
+
+/* Color Vision Deficiency Profiles */
+
+/* Protanopia / Deuteranopia (Red-Green Safe) */
+body.cvd-deuteranopia {
+    --status-live: #38bdf8;
+    --status-idle: #f59e0b;
+    --status-error: #f43f5e;
+    --active-border: #38bdf8;
+    --active-bg: #0c2d48;
+    --active-glow: rgba(56, 189, 248, 0.3);
+}
+
+/* Tritanopia (Blue-Yellow Safe) */
+body.cvd-tritanopia {
+    --status-live: #10b981;
+    --status-idle: #cbd5e1;
+    --status-error: #f43f5e;
+    --active-border: #10b981;
+    --active-bg: #064e3b;
+    --active-glow: rgba(16, 185, 129, 0.3);
+}
+
+/* Achromatopsia / Monochromacy (High-Contrast Grayscale) */
+body.cvd-monochrome {
+    --status-live: #ffffff;
+    --status-idle: #94a3b8;
+    --status-error: #ffffff;
+    --active-border: #ffffff;
+    --active-bg: #262626;
+    --active-glow: none;
+}
+body.cvd-monochrome .caption-card.active-card {
+    border: 3px double #ffffff;
+}
+
+/* High Contrast Mode (Broadcast Yellow on Pure Black) */
+body.high-contrast {
+    --bg-primary: #000000;
+    --bg-header: #000000;
+    --border-color: #ffffff;
+    --text-primary: #ffff00;
+    --text-muted: #ffffff;
+    --card-bg: #000000;
+    --card-border: #ffffff;
+    --active-border: #ffff00;
+    --active-glow: none;
+    --active-bg: #111111;
+    --btn-bg: #000000;
+    --btn-text: #ffff00;
+    --btn-border: #ffff00;
+    --btn-hover: #222222;
+    --status-live: #00ff66;
+    --status-idle: #ffff00;
+    --status-error: #ff3333;
+}
+body.high-contrast .caption-card.history-card {
+    border-style: dashed;
+}
+
 * {
-    -webkit-tap-highlight-color: rgba(0,0,0,0); /* make transparent link selection, adjust last value opacity 0 to 1.0 */
+    box-sizing: border-box;
+    -webkit-tap-highlight-color: transparent;
 }
 
 body {
-    -webkit-touch-callout: none;                /* prevent callout to copy image, etc when tap to hold */
-    -webkit-text-size-adjust: none;             /* prevent webkit from resizing text to fit */
-    -webkit-user-select: none;                  /* prevent copy paste, to allow, change 'none' to 'text' */
-    background-color:#E4E4E4;
-    background-image:linear-gradient(to bottom, #A7A7A7 0%, #E4E4E4 51%);
-    font-family: system-ui, -apple-system, -apple-system-font, 'Segoe UI', 'Roboto', sans-serif;
-    font-size:12px;
-    height:100vh;
-    margin:0px;
-    padding:0px;
-    /* Padding to avoid the "unsafe" areas behind notches in the screen */
-    padding: env(safe-area-inset-top, 0px) env(safe-area-inset-right, 0px) env(safe-area-inset-bottom, 0px) env(safe-area-inset-left, 0px);
-    text-transform:uppercase;
-    width:100%;
-    background: #000000;
+    margin: 0;
+    padding: 0;
+    background-color: var(--bg-primary);
+    color: var(--text-primary);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    line-height: 1.5;
+    letter-spacing: 0.015em;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
 }
 
-@media screen and (prefers-color-scheme: dark) {
-    body {
-        background-image:linear-gradient(to bottom, #585858 0%, #1B1B1B 51%);
+/* Visually hidden for screen readers */
+.sr-only {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border: 0;
+}
+
+/* Accessible keyboard focus */
+:focus-visible {
+    outline: 3px solid var(--active-border);
+    outline-offset: 3px;
+}
+
+/* Sticky App Header */
+.app-header {
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    background: var(--bg-header);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    border-bottom: 1px solid var(--border-color);
+    padding: 10px 16px;
+    padding-top: max(10px, env(safe-area-inset-top));
+}
+
+.header-inner {
+    max-width: 1200px;
+    margin: 0 auto;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+}
+
+.header-left, .header-right {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 12px;
+}
+
+.header-logo {
+    height: 38px;
+    width: auto;
+    display: block;
+    object-fit: contain;
+}
+
+.room-selector-wrapper {
+    display: flex;
+    align-items: center;
+}
+
+.room-select {
+    background-color: var(--btn-bg);
+    color: var(--text-primary);
+    border: 1px solid var(--btn-border);
+    border-radius: 8px;
+    font-size: 16px;
+    font-weight: 600;
+    padding: 8px 14px;
+    min-height: 44px;
+    cursor: pointer;
+    transition: border-color 0.15s ease, background-color 0.15s ease;
+}
+
+.room-select:hover {
+    border-color: var(--active-border);
+}
+
+/* Dual-Coded Status Indicator (Shape + Color + Text) */
+.status-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 6px 14px;
+    border-radius: 9999px;
+    border: 1px solid var(--border-color);
+    background-color: var(--btn-bg);
+    font-size: 13px;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    user-select: none;
+}
+
+.status-icon {
+    font-size: 13px;
+    font-weight: 900;
+    line-height: 1;
+    display: inline-block;
+}
+
+.status-badge.status-live {
+    border-color: var(--status-live);
+}
+.status-badge.status-live .status-icon {
+    color: var(--status-live);
+    animation: pulse-icon 2s infinite ease-in-out;
+}
+
+.status-badge.status-idle .status-icon {
+    color: var(--status-idle);
+}
+
+.status-badge.status-error {
+    border-color: var(--status-error);
+}
+.status-badge.status-error .status-icon {
+    color: var(--status-error);
+}
+
+@keyframes pulse-icon {
+    0%, 100% { transform: scale(1); opacity: 1; }
+    50% { transform: scale(1.3); opacity: 0.7; }
+}
+
+/* Font and Accessibility Controls */
+.font-controls {
+    display: flex;
+    gap: 6px;
+    align-items: center;
+}
+
+.font-controls-label {
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--text-muted);
+    margin-right: 2px;
+    user-select: none;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+.ctrl-btn {
+    background-color: var(--btn-bg);
+    color: var(--btn-text);
+    border: 1px solid var(--btn-border);
+    border-radius: 8px;
+    font-size: 16px;
+    font-weight: 700;
+    padding: 6px 14px;
+    min-width: 44px;
+    min-height: 44px;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    touch-action: manipulation;
+    transition: background-color 0.15s, border-color 0.15s;
+}
+
+.ctrl-btn:hover {
+    background-color: var(--btn-hover);
+    border-color: var(--active-border);
+}
+
+.ctrl-btn:active {
+    filter: brightness(0.9);
+}
+
+#fontSizeDecBtn,
+#fontSizeIncBtn {
+    font-size: 22px;
+    font-weight: 800;
+}
+
+.ctrl-btn-reset {
+    font-size: 14px;
+    font-weight: 600;
+    text-transform: uppercase;
+    padding: 6px 12px;
+}
+
+.ctrl-btn-settings {
+    gap: 6px;
+    font-size: 14px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    padding: 6px 14px;
+}
+
+.settings-btn-icon {
+    font-size: 18px;
+    line-height: 1;
+}
+
+/* Main Caption Stream Layout */
+.main-container {
+    flex: 1;
+    max-width: 1000px;
+    width: 100%;
+    margin: 0 auto;
+    padding: 24px 16px;
+    display: flex;
+    flex-direction: column;
+}
+
+.cc-stream {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    width: 100%;
+}
+
+/* Subtitle Cards */
+.caption-card {
+    background-color: var(--card-bg);
+    border: 1px solid var(--card-border);
+    border-radius: 12px;
+    padding: 16px 20px;
+    color: var(--text-muted);
+    font-weight: 500;
+    line-height: 1.55;
+    word-break: break-word;
+    transition: all 0.25s ease-out;
+}
+
+/* Active / Current Caption Card */
+.caption-card.active-card {
+    background-color: var(--active-bg);
+    border: 2px solid var(--active-border);
+    color: var(--text-primary);
+    font-weight: 700;
+    box-shadow: 0 4px 20px var(--active-glow);
+}
+
+.caption-meta {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 6px;
+    font-size: 0.55em;
+    font-weight: 700;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    user-select: none;
+}
+
+.caption-badge {
+    color: var(--active-border);
+}
+
+.caption-time {
+    color: var(--text-muted);
+    opacity: 0.8;
+    font-variant-numeric: tabular-nums;
+    margin-left: auto;
+}
+
+.caption-body {
+    line-height: 1.5;
+}
+
+/* Empty State / Welcome Notice - Scales dynamically with Font Size */
+.empty-state {
+    text-align: center;
+    padding: 60px 20px;
+    color: var(--text-muted);
+}
+
+.empty-title {
+    font-size: 1.05em;
+    font-weight: 700;
+    color: var(--text-primary);
+    margin-bottom: 10px;
+    line-height: 1.4;
+}
+
+.empty-subtitle {
+    font-size: 0.75em;
+    color: var(--text-muted);
+    margin-top: 0;
+    line-height: 1.4;
+}
+
+/* Settings Modal / Dialog */
+.settings-modal {
+    border: 1px solid var(--border-color);
+    border-radius: 14px;
+    background-color: var(--card-bg);
+    color: var(--text-primary);
+    max-width: 520px;
+    width: 92%;
+    padding: 0;
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.7);
+}
+
+.settings-modal::backdrop {
+    background: rgba(0, 0, 0, 0.7);
+    backdrop-filter: blur(4px);
+    -webkit-backdrop-filter: blur(4px);
+}
+
+.settings-modal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 18px 24px;
+    border-bottom: 1px solid var(--border-color);
+}
+
+.settings-title {
+    font-size: 18px;
+    font-weight: 700;
+    margin: 0;
+}
+
+.close-modal-btn {
+    min-width: 36px;
+    min-height: 36px;
+    padding: 4px;
+    font-size: 16px;
+    border-radius: 6px;
+}
+
+.settings-modal-body {
+    padding: 20px 24px;
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+}
+
+.setting-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 16px;
+}
+
+.setting-text {
+    flex: 1;
+}
+
+.setting-label {
+    font-size: 16px;
+    font-weight: 700;
+    display: block;
+    margin-bottom: 4px;
+    cursor: pointer;
+}
+
+.setting-desc {
+    font-size: 13px;
+    color: var(--text-muted);
+    margin: 0;
+    line-height: 1.4;
+}
+
+.settings-select {
+    background-color: var(--btn-bg);
+    color: var(--text-primary);
+    border: 1px solid var(--btn-border);
+    border-radius: 8px;
+    font-size: 14px;
+    font-weight: 600;
+    padding: 8px 12px;
+    min-height: 44px;
+    cursor: pointer;
+}
+
+/* Switch Slider */
+.switch-wrapper {
+    position: relative;
+    display: inline-block;
+    width: 50px;
+    height: 28px;
+}
+
+.switch-wrapper input {
+    opacity: 0;
+    width: 0;
+    height: 0;
+}
+
+.switch-slider {
+    position: absolute;
+    cursor: pointer;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: var(--btn-bg);
+    border: 1px solid var(--btn-border);
+    transition: 0.2s;
+    border-radius: 28px;
+}
+
+.switch-slider:before {
+    position: absolute;
+    content: "";
+    height: 20px;
+    width: 20px;
+    left: 3px;
+    bottom: 3px;
+    background-color: var(--btn-text);
+    transition: 0.2s;
+    border-radius: 50%;
+}
+
+input:checked + .switch-slider {
+    background-color: var(--active-border);
+}
+
+input:checked + .switch-slider:before {
+    transform: translateX(22px);
+    background-color: #000000;
+}
+
+/* Settings Live Preview Row */
+.settings-preview {
+    margin-top: 8px;
+    padding-top: 16px;
+    border-top: 1px solid var(--border-color);
+}
+
+.preview-label {
+    font-size: 12px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--text-muted);
+    display: block;
+    margin-bottom: 10px;
+}
+
+.status-preview-group {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
+/* Reduced Motion Preference for Accessibility */
+@media (prefers-reduced-motion: reduce) {
+    *, ::before, ::after {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+        scroll-behavior: auto !important;
     }
 }
 
-.logo {
-    display: flex;
-    justify-content: center;
-    align-items: center;
+/* Mobile Responsiveness */
+@media screen and (max-width: 680px) {
+    .header-inner {
+        flex-direction: column;
+        align-items: stretch;
+    }
 
-    width: 25%;
-    height: auto;
-    margin: auto;
-    padding: 0px;
-}
+    .header-left, .header-right {
+        justify-content: space-between;
+    }
 
-.center {
-    margin-left: auto;
-    margin-right: auto;
-}
+    .header-logo {
+        height: 32px;
+    }
 
-.ccText {
-    word-wrap: break-word;
-    color: #f0f0f0;
-    /*font-weight: bold;*/
-    text-align: center;
-    margin: 1em;
-    padding: 1em;
+    .room-select {
+        flex: 1;
+        min-width: 140px;
+    }
+
+    .main-container {
+        padding: 16px 12px;
+    }
+
+    .caption-card {
+        padding: 12px 16px;
+    }
 }

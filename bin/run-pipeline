@@ -1,17 +1,43 @@
 #!/bin/bash
-DIR="$(cd $(dirname $BASH_SOURCE)/..; pwd)"
+DIR="$(cd $(dirname "${BASH_SOURCE[0]}")/..; pwd)"
 
-if [ $# -ne 1 ]
-then
+# Automatically load environment variables from .env if present
+if [ -f "${DIR}/.env" ]; then
+    set -a
+    # shellcheck disable=SC1090
+    source "${DIR}/.env"
+    set +a
+fi
+
+if [ $# -ne 1 ]; then
     echo "[ERROR] Please supply room" 1>&2
     exit 1
 fi
+
 ROOM="$1"
 
-export GST_PLUGIN_PATH="${DIR}/../gst-plugins-rs/target/release:${DIR}/:$GST_PLUGIN_PATH"
+# Validate room parameter to prevent command/argument injection
+if [[ ! "${ROOM}" =~ ^[a-zA-Z0-9_-]+$ ]]; then
+    echo "[ERROR] Invalid room identifier: ${ROOM}" 1>&2
+    exit 1
+fi
+
+ZMQ_LOCATION="${SCALECC_PUBLISH_ADDRESS:-tcp://127.0.0.1:4040}"
+export GST_PLUGIN_PATH="${DIR}/../gst-plugins-rs/target/release:${DIR}/:${GST_PLUGIN_PATH}"
+
+# Retrieve AWS credentials from environment variables rather than hardcoding on CLI
+AWS_KEY="${AWS_ACCESS_KEY_ID:-}"
+AWS_SECRET="${AWS_SECRET_ACCESS_KEY:-}"
+
+if [ -n "${AWS_KEY}" ] && [ -n "${AWS_SECRET}" ]; then
+    AUTH_FLAGS="access-key=\"${AWS_KEY}\" secret-access-key=\"${AWS_SECRET}\""
+else
+    AUTH_FLAGS=""
+fi
+
 gst-launch-1.0 rtspsrc location="rtsp://${ROOM}-cam/1" ! \
     decodebin ! \
     queue ! \
     audioconvert ! \
-    awstranscriber access-key="---" secret-access-key="---" ! \
-    zmqtextsink location="tcp://0.0.0.0:4040" room="${ROOM}"
+    awstranscriber ${AUTH_FLAGS} ! \
+    zmqtextsink location="${ZMQ_LOCATION}" room="${ROOM}"

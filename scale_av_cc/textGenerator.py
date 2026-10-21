@@ -30,9 +30,22 @@ MAD_LIB = "{verb} {adverb} {preposition} {adjective} {noun} {conjunction} {noun}
 PATTERN = re.compile(r"\{([a-z]+)}")
 
 
+TOKEN_MAP = {
+    "verb": VERBS,
+    "adverb": ADVERBS,
+    "preposition": PREPOSITIONS,
+    "adjective": ADJECTIVES,
+    "noun": NOUNS,
+    "conjunction": CONJUNCTIONS,
+}
+
+
 def get_token(token_type):
     """ Get a token of a given type"""
-    listing = eval(f"{token_type.upper()}S")
+    token_key = token_type.lower()
+    if token_key not in TOKEN_MAP:
+        raise ValueError(f"Unknown token type: {token_type}")
+    listing = TOKEN_MAP[token_key]
     return random.choice(listing)
 
 

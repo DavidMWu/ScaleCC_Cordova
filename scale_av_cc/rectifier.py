@@ -48,9 +48,15 @@ def loop(rooms):
                 LATEST[name] = ""
                 INCOMING[name] = ""
             except zmq.ZMQError:
-                logging.warning("Failed to subscribe '%s'", uri)
+                logging.warning("Failed to subscribe '%s'", name)
         latest = socket.recv_string()
-        room, text = latest.split(" ", 1)
+        parts = latest.split(" ", 1)
+        if len(parts) != 2:
+            LOGGER.warning("Malformed message received: %s", latest)
+            continue
+        room, text = parts
+        if room not in INCOMING:
+            INCOMING[room] = ""
         INCOMING[room] = f"{INCOMING[room]}{text.strip()}" if END_REG.match(text.strip()) else  f"{INCOMING[room]} {text}"
         if INCOMING[room].endswith("."):
             LATEST[room] = INCOMING[room]
@@ -62,7 +68,7 @@ def main():
     """ Main function. Hi Lewis!!! """
     with open("rooms.json", "r") as file_handle:
         rooms = json.load(file_handle)
-    thread = threading.Thread(target=run)
+    thread = threading.Thread(target=run, daemon=True)
     thread.start()
     # Build a socket subscribed to all channels
     loop(rooms)

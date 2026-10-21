@@ -28,4 +28,11 @@ node_modules/
 run.sh
 
 venv/
+.venv/
+.env
+__pycache__/
+.pytest_cache/
+*.pyc
+*.log
+Thumbs.db
 scale_av_cc/__pycache__/
